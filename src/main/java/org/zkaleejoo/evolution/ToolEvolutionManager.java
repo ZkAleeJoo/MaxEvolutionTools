@@ -16,8 +16,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.zkaleejoo.MaxEvolutionTools;
+import java.util.HashMap;
+import java.util.Map;
+
+
 
 public class ToolEvolutionManager {
+
+    private static final Map<String, String> ENCHANTMENT_ALIASES = new HashMap<>();
+
+    static {
+        ENCHANTMENT_ALIASES.put("DURABILITY", "UNBREAKING");
+        ENCHANTMENT_ALIASES.put("DIG_SPEED", "EFFICIENCY");
+        ENCHANTMENT_ALIASES.put("LOOT_BONUS_BLOCKS", "FORTUNE");
+    }
 
     private final MaxEvolutionTools plugin;
 
@@ -82,7 +94,7 @@ public class ToolEvolutionManager {
     public List<EvolutionMilestone> getReachedMilestones(int usage) {
         List<EvolutionMilestone> reached = new ArrayList<>();
         for (EvolutionMilestone milestone : milestones) {
-            if (usage == milestone.blocksRequired()) {
+            if (usage >= milestone.blocksRequired()) {
                 reached.add(milestone);
             }
         }
@@ -98,7 +110,7 @@ public class ToolEvolutionManager {
         boolean changed = false;
 
         if (milestone.enchantment() != null && !milestone.enchantment().isBlank()) {
-            Enchantment enchantment = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(milestone.enchantment().toLowerCase(Locale.ROOT)));
+            Enchantment enchantment = resolveEnchantment(milestone.enchantment());
             if (enchantment != null) {
                 int currentLevel = meta.getEnchantLevel(enchantment);
                 if (currentLevel < milestone.level()) {
@@ -122,6 +134,25 @@ public class ToolEvolutionManager {
         }
 
         return changed;
+    }
+
+    private Enchantment resolveEnchantment(String configuredEnchantment) {
+        String normalized = configuredEnchantment.trim();
+        Enchantment enchantment = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(normalized.toLowerCase(Locale.ROOT)));
+        if (enchantment != null) {
+            return enchantment;
+        }
+
+        String alias = ENCHANTMENT_ALIASES.get(normalized.toUpperCase(Locale.ROOT));
+        if (alias != null) {
+            enchantment = Registry.ENCHANTMENT.get(NamespacedKey.minecraft(alias.toLowerCase(Locale.ROOT)));
+            if (enchantment != null) {
+                return enchantment;
+            }
+        }
+
+        plugin.getLogger().warning("Invalid enchantment configured in milestone: " + configuredEnchantment);
+        return null;
     }
 
     public double getSpecialRepairChance() {
