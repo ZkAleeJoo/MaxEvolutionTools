@@ -9,9 +9,11 @@ commands:
   maxevolutiontools:
     description: Main MaxEvolutionTools command
     aliases: [met]
-    permission: maxevolutiontools.admin
 
 permissions:
   maxevolutiontools.admin:
     description: Full access to MaxEvolutionTools and administrative commands.
     default: op
+  maxevolutiontools.toolinfo:
+    description: Allows players to check evolution progress of the held tool.
+    default: true

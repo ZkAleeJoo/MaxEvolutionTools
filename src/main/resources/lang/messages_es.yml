@@ -1,3 +1,11 @@
 messages:
   no-permission: "&cNo tienes permisos para usar este comando."
   plugin-reload: "&aLa configuración y mensajes se han recargado correctamente."
+  milestone-reached: "&aTu herramienta alcanzó &e%blocks% &abloques y obtuvo &e%enchant% %level%&a."
+  special-unlocked: "&6¡Tu herramienta desbloqueó una habilidad especial de autorreparación!"
+  tool-info: "&7Bloques minados por esta herramienta: &e%usage% &8| &7Especial: &e%special%"
+  only-players: "&cSolo los jugadores pueden usar este comando."
+  invalid-tool: "&cDebes sostener una herramienta válida en tu mano principal."
+  enabled-word: "Activado"
+  disabled-word: "Desactivado"
+  command-usage: "&cUso: /maxevolutiontools <reload|toolinfo>"

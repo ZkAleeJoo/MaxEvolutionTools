@@ -1,0 +1,38 @@
+#Tools that will participate in the evolution system.
+tracked-tools:
+  - WOODEN_PICKAXE
+  - STONE_PICKAXE
+  - IRON_PICKAXE
+  - GOLDEN_PICKAXE
+  - DIAMOND_PICKAXE
+  - NETHERITE_PICKAXE
+  - WOODEN_AXE
+  - STONE_AXE
+  - IRON_AXE
+  - GOLDEN_AXE
+  - DIAMOND_AXE
+  - NETHERITE_AXE
+  - WOODEN_SHOVEL
+  - STONE_SHOVEL
+  - IRON_SHOVEL
+  - GOLDEN_SHOVEL
+  - DIAMOND_SHOVEL
+  - NETHERITE_SHOVEL
+
+#They are applied when the counter reaches EXACTLY the value of blocks.
+milestones:
+  milestone-1:
+    blocks: 100
+    enchantment: EFFICIENCY
+    level: 1
+  milestone-2:
+    blocks: 500
+    enchantment: DURABILITY
+    level: 1
+  milestone-3:
+    blocks: 1000
+    unlock-special: true
+
+#Example special ability: the tool has a chance to repair itself by 1 point when breaking blocks.
+special-ability:
+  repair-chance: 0.15
