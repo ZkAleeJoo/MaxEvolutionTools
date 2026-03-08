@@ -1,0 +1,3 @@
+messages:
+  no-permission: "&cYou do not have permission to use this command."
+  plugin-reload: "&aSettings and messages have been successfully reloaded."

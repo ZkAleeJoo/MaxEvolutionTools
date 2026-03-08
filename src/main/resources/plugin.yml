@@ -1,0 +1,17 @@
+name: MaxEvolutionTools
+version: '1.0.0'
+main: org.zkaleejoo.MaxEvolutionTools
+api-version: '1.21'
+authors: [ ZkAleeJoo ]
+description: Your tools will evolve as you progress.
+
+commands:
+  maxevolutiontools:
+    description: Main MaxEvolutionTools command
+    aliases: [met]
+    permission: maxevolutiontools.admin
+
+permissions:
+  maxevolutiontools.admin:
+    description: Full access to MaxEvolutionTools and administrative commands.
+    default: op
