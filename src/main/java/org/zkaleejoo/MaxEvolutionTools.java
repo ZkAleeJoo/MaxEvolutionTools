@@ -17,7 +17,7 @@ public final class MaxEvolutionTools extends JavaPlugin {
         mainConfigManager = new MainConfigManager(this);
         getCommand("maxevolutiontools").setExecutor(new MainCommand(this));
 
-        Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW+"  _____                 ___________           .__          __  .__            ___________           .__          ");
+        Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW+"   _____                 ___________           .__          __  .__            ___________           .__          ");
         Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW+" /     \\ _____  ___  ___\\_   _____/__  ______ |  |  __ ___/  |_|__| ____   ___\\__    ___/___   ____ |  |   ______");
         Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW+" /  \\ /  \\\\__  \\ \\  \\/  / |    __)_\\  \\/ /  _ \\|  | |  |  \\   __\\  |/  _ \\ /    \\|    | /  _ \\ /  _ \\|  |  /  ___/");
         Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW+"/    Y    \\/ __ \\_>    <  |        \\\\   (  <_> )  |_|  |  /|  | |  (  <_> )   |  \\    |(  <_> |  <_> )  |__\\___ \\ ");
