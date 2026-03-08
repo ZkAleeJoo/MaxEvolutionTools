@@ -24,6 +24,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.zkaleejoo.MaxEvolutionTools;
 import org.zkaleejoo.utils.MessageUtils;
+import org.bukkit.inventory.ItemFlag;
 
 public class ToolEvolutionManager {
 
@@ -268,20 +269,13 @@ public class ToolEvolutionManager {
             return;
         }
 
-        List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        List<String> lore = new ArrayList<>();
         PersistentDataContainer container = meta.getPersistentDataContainer();
-
-        String previousManaged = container.getOrDefault(managedLoreLinesKey, PersistentDataType.STRING, "");
-        if (!previousManaged.isBlank()) {
-            for (String line : previousManaged.split("\n")) {
-                lore.remove(line);
-            }
-        }
 
         List<String> managedLore = new ArrayList<>();
         for (Map.Entry<Enchantment, Integer> enchant : meta.getEnchants().entrySet()) {
             String rendered = plugin.getConfigManager().getEvolutionLoreLineFormat()
-                    .replace("{enchant}", formatEnchantment(enchant.getKey()))
+                    .replace("{enchant}", getDisplayEnchantmentName(enchant.getKey()))
                     .replace("{key}", enchant.getKey().getKey().getKey())
                     .replace("{level}", String.valueOf(enchant.getValue()));
             managedLore.add(MessageUtils.getColoredMessage(rendered));
@@ -294,11 +288,27 @@ public class ToolEvolutionManager {
             container.remove(managedLoreLinesKey);
         }
 
+        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES);
+
         meta.setLore(lore.isEmpty() ? null : lore);
     }
 
-    private String formatEnchantment(Enchantment enchantment) {
-        String[] parts = enchantment.getKey().getKey().split("_");
+    public String getDisplayEnchantmentName(String configuredEnchantment) {
+        Enchantment enchantment = resolveEnchantment(configuredEnchantment);
+        if (enchantment == null) {
+            return configuredEnchantment;
+        }
+        return getDisplayEnchantmentName(enchantment);
+    }
+
+    private String getDisplayEnchantmentName(Enchantment enchantment) {
+        String key = enchantment.getKey().getKey();
+        String translated = plugin.getConfigManager().getEnchantmentName(key);
+        if (!translated.isBlank()) {
+            return translated;
+        }
+
+        String[] parts = key.split("_");
         StringBuilder builder = new StringBuilder();
         for (String part : parts) {
             if (part.isBlank()) {

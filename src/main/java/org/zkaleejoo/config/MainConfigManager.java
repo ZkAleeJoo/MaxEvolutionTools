@@ -2,6 +2,9 @@ package org.zkaleejoo.config;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.zkaleejoo.MaxEvolutionTools;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 public class MainConfigManager {
 
@@ -14,6 +17,7 @@ public class MainConfigManager {
     private String prefix;
     private boolean evolutionLoreEnabled;
     private String evolutionLoreLineFormat;
+    private Map<String, String> enchantmentNames = new HashMap<>();
 
     //VARIABLES MENSAJES
     private String msgNoPermission;
@@ -62,6 +66,15 @@ public class MainConfigManager {
         msgEnabledWord = lang.getString("messages.enabled-word", "Enabled");
         msgDisabledWord = lang.getString("messages.disabled-word", "Disabled");
         msgCommandUsage = lang.getString("messages.command-usage", "&cUsage: /maxevolutiontools <reload|toolinfo>");
+        enchantmentNames = new HashMap<>();
+        if (lang.isConfigurationSection("enchantments")) {
+            for (String key : lang.getConfigurationSection("enchantments").getKeys(false)) {
+                String value = lang.getString("enchantments." + key, "").trim();
+                if (!value.isBlank()) {
+                    enchantmentNames.put(key.toLowerCase(Locale.ROOT), value);
+                }
+            }
+        }
     }
 
     public void reloadConfig(){
@@ -90,5 +103,11 @@ public class MainConfigManager {
     public String getEvolutionLoreLineFormat() { return evolutionLoreLineFormat; }
     public FileConfiguration getEvolutionConfig() {
         return evolutionFile.getConfig();
+    }
+    public String getEnchantmentName(String enchantmentKey) {
+        if (enchantmentKey == null) {
+            return "";
+        }
+        return enchantmentNames.getOrDefault(enchantmentKey.toLowerCase(Locale.ROOT), "");
     }
 }

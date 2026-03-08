@@ -9,3 +9,9 @@ messages:
   enabled-word: "Activado"
   disabled-word: "Desactivado"
   command-usage: "&cUso: /maxevolutiontools <reload|toolinfo>"
+enchantments:
+  efficiency: "Eficiencia"
+  unbreaking: "Irrompibilidad"
+  fortune: "Fortuna"
+  silk_touch: "Toque de seda"
+  mending: "Reparación"
