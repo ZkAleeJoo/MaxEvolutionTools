@@ -8,6 +8,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.zkaleejoo.MaxEvolutionTools;
 import org.zkaleejoo.utils.MessageUtils;
+import java.util.Set;
 
 public class ToolInfoSubCommand implements SubCommand {
 
@@ -41,11 +42,13 @@ public class ToolInfoSubCommand implements SubCommand {
         }
 
         int usage = plugin.getToolEvolutionManager().getUsage(item);
-        boolean special = plugin.getToolEvolutionManager().isSpecialUnlocked(item);
+        Set<String> abilities = plugin.getToolEvolutionManager().getUnlockedAbilities(item);
+        boolean special = !abilities.isEmpty();
 
         String message = plugin.getConfigManager().getMsgToolInfo()
                 .replace("%usage%", String.valueOf(usage))
-                .replace("%special%", special ? plugin.getConfigManager().getMsgEnabledWord() : plugin.getConfigManager().getMsgDisabledWord());
+                .replace("%special%", special ? plugin.getConfigManager().getMsgEnabledWord() : plugin.getConfigManager().getMsgDisabledWord())
+                .replace("%abilities%", abilities.isEmpty() ? "-" : String.join(", ", abilities));
 
         player.sendMessage(MessageUtils.getColoredMessage(plugin.getConfigManager().getPrefix() + message));
         return true;

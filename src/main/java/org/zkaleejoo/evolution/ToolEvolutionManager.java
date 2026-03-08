@@ -3,23 +3,27 @@ package org.zkaleejoo.evolution;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.zkaleejoo.MaxEvolutionTools;
-import java.util.HashMap;
-import java.util.Map;
-
-
+import org.zkaleejoo.utils.MessageUtils;
 
 public class ToolEvolutionManager {
 
@@ -35,21 +39,26 @@ public class ToolEvolutionManager {
 
     private final NamespacedKey blocksMinedKey;
     private final NamespacedKey specialUnlockedKey;
+    private final NamespacedKey unlockedAbilitiesKey;
+    private final NamespacedKey managedLoreLinesKey;
 
     private List<Material> trackedTools = new ArrayList<>();
     private List<EvolutionMilestone> milestones = new ArrayList<>();
-    private double specialRepairChance;
+    private Map<String, SpecialAbilityConfig> specialAbilities = new LinkedHashMap<>();
 
     public ToolEvolutionManager(MaxEvolutionTools plugin) {
         this.plugin = plugin;
         this.blocksMinedKey = new NamespacedKey(plugin, "blocks_mined");
         this.specialUnlockedKey = new NamespacedKey(plugin, "special_unlocked");
+        this.unlockedAbilitiesKey = new NamespacedKey(plugin, "unlocked_abilities");
+        this.managedLoreLinesKey = new NamespacedKey(plugin, "managed_lore_lines");
     }
 
     public void reload() {
-        trackedTools = parseTrackedTools(plugin.getConfigManager().getEvolutionConfig());
-        milestones = parseMilestones(plugin.getConfigManager().getEvolutionConfig());
-        specialRepairChance = plugin.getConfigManager().getEvolutionConfig().getDouble("special-ability.repair-chance", 0.15D);
+        FileConfiguration config = plugin.getConfigManager().getEvolutionConfig();
+        trackedTools = parseTrackedTools(config);
+        milestones = parseMilestones(config);
+        specialAbilities = parseSpecialAbilities(config);
     }
 
     public boolean isTrackedTool(ItemStack itemStack) {
@@ -85,10 +94,32 @@ public class ToolEvolutionManager {
     }
 
     public boolean isSpecialUnlocked(ItemStack itemStack) {
+        return !getUnlockedAbilities(itemStack).isEmpty();
+    }
+
+    public Set<String> getUnlockedAbilities(ItemStack itemStack) {
         if (itemStack == null || itemStack.getItemMeta() == null) {
-            return false;
+            return Collections.emptySet();
         }
-        return itemStack.getItemMeta().getPersistentDataContainer().getOrDefault(specialUnlockedKey, PersistentDataType.BYTE, (byte) 0) == (byte) 1;
+
+        PersistentDataContainer container = itemStack.getItemMeta().getPersistentDataContainer();
+        String raw = container.getOrDefault(unlockedAbilitiesKey, PersistentDataType.STRING, "");
+        Set<String> unlocked = new LinkedHashSet<>();
+
+        if (raw != null && !raw.isBlank()) {
+            for (String token : raw.split(",")) {
+                String normalized = token.trim().toLowerCase(Locale.ROOT);
+                if (!normalized.isBlank()) {
+                    unlocked.add(normalized);
+                }
+            }
+        }
+
+        if (container.getOrDefault(specialUnlockedKey, PersistentDataType.BYTE, (byte) 0) == (byte) 1) {
+            unlocked.add("self-repair");
+        }
+
+        return unlocked;
     }
 
     public List<EvolutionMilestone> getReachedMilestones(int usage) {
@@ -121,19 +152,165 @@ public class ToolEvolutionManager {
             }
         }
 
-        if (milestone.specialUnlock()) {
+        if (!milestone.unlockAbilities().isEmpty()) {
             PersistentDataContainer container = meta.getPersistentDataContainer();
-            if (container.getOrDefault(specialUnlockedKey, PersistentDataType.BYTE, (byte) 0) == (byte) 0) {
-                container.set(specialUnlockedKey, PersistentDataType.BYTE, (byte) 1);
+            Set<String> unlocked = getUnlockedAbilities(itemStack);
+            boolean unlockedChanged = false;
+            for (String abilityId : milestone.unlockAbilities()) {
+                String normalized = abilityId.toLowerCase(Locale.ROOT);
+                if (specialAbilities.containsKey(normalized) && unlocked.add(normalized)) {
+                    unlockedChanged = true;
+                }
+            }
+
+            if (unlockedChanged) {
+                container.set(unlockedAbilitiesKey, PersistentDataType.STRING, String.join(",", unlocked));
+                if (unlocked.contains("self-repair")) {
+                    container.set(specialUnlockedKey, PersistentDataType.BYTE, (byte) 1);
+                }
                 changed = true;
             }
         }
 
         if (changed) {
+            updateManagedLore(meta);
             itemStack.setItemMeta(meta);
         }
 
         return changed;
+    }
+
+    public List<String> getAbilitiesToNotify(EvolutionMilestone milestone) {
+        return milestone.unlockAbilities().stream()
+                .map(s -> s.toLowerCase(Locale.ROOT))
+                .filter(specialAbilities::containsKey)
+                .toList();
+    }
+
+    public void processSpecialAbilities(ItemStack tool) {
+        Set<String> unlocked = getUnlockedAbilities(tool);
+        if (unlocked.isEmpty()) {
+            return;
+        }
+
+        ItemMeta meta = tool.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+
+        boolean changed = false;
+        for (String abilityId : unlocked) {
+            SpecialAbilityConfig ability = specialAbilities.get(abilityId);
+            if (ability == null || !ability.enabled()) {
+                continue;
+            }
+
+            if (!ability.compatibleWithMending() && meta.hasEnchant(Enchantment.MENDING)) {
+                continue;
+            }
+
+            if (!isOffCooldown(meta, abilityId)) {
+                continue;
+            }
+
+            if (Math.random() > ability.chance()) {
+                continue;
+            }
+
+            if (applyAbility(meta, ability)) {
+                markCooldown(meta, abilityId, ability.cooldownSeconds());
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            tool.setItemMeta(meta);
+        }
+    }
+
+    private boolean applyAbility(ItemMeta meta, SpecialAbilityConfig ability) {
+        return switch (ability.type()) {
+            case SELF_REPAIR -> applySelfRepair(meta, ability.amount());
+        };
+    }
+
+    private boolean applySelfRepair(ItemMeta meta, int amount) {
+        if (!(meta instanceof Damageable damageable)) {
+            return false;
+        }
+
+        int damage = damageable.getDamage();
+        if (damage <= 0) {
+            return false;
+        }
+
+        int repairedDamage = Math.max(0, damage - Math.max(1, amount));
+        damageable.setDamage(repairedDamage);
+        return true;
+    }
+
+
+    private boolean isOffCooldown(ItemMeta meta, String abilityId) {
+        NamespacedKey cooldownKey = new NamespacedKey(plugin, "ability_cooldown_" + abilityId.replace('-', '_'));
+        long now = System.currentTimeMillis();
+        long nextUse = meta.getPersistentDataContainer().getOrDefault(cooldownKey, PersistentDataType.LONG, 0L);
+        return now >= nextUse;
+    }
+
+    private void markCooldown(ItemMeta meta, String abilityId, int cooldownSeconds) {
+        NamespacedKey cooldownKey = new NamespacedKey(plugin, "ability_cooldown_" + abilityId.replace('-', '_'));
+        long nextUse = System.currentTimeMillis() + Math.max(0, cooldownSeconds) * 1000L;
+        meta.getPersistentDataContainer().set(cooldownKey, PersistentDataType.LONG, nextUse);
+    }
+
+    private void updateManagedLore(ItemMeta meta) {
+        if (!plugin.getConfigManager().isEvolutionLoreEnabled()) {
+            return;
+        }
+
+        List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+
+        String previousManaged = container.getOrDefault(managedLoreLinesKey, PersistentDataType.STRING, "");
+        if (!previousManaged.isBlank()) {
+            for (String line : previousManaged.split("\n")) {
+                lore.remove(line);
+            }
+        }
+
+        List<String> managedLore = new ArrayList<>();
+        for (Map.Entry<Enchantment, Integer> enchant : meta.getEnchants().entrySet()) {
+            String rendered = plugin.getConfigManager().getEvolutionLoreLineFormat()
+                    .replace("{enchant}", formatEnchantment(enchant.getKey()))
+                    .replace("{key}", enchant.getKey().getKey().getKey())
+                    .replace("{level}", String.valueOf(enchant.getValue()));
+            managedLore.add(MessageUtils.getColoredMessage(rendered));
+        }
+
+        if (!managedLore.isEmpty()) {
+            lore.addAll(managedLore);
+            container.set(managedLoreLinesKey, PersistentDataType.STRING, String.join("\n", managedLore));
+        } else {
+            container.remove(managedLoreLinesKey);
+        }
+
+        meta.setLore(lore.isEmpty() ? null : lore);
+    }
+
+    private String formatEnchantment(Enchantment enchantment) {
+        String[] parts = enchantment.getKey().getKey().split("_");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(' ');
+            }
+            builder.append(part.substring(0, 1).toUpperCase(Locale.ROOT))
+                    .append(part.substring(1).toLowerCase(Locale.ROOT));
+        }
+        return builder.toString();
     }
 
     private Enchantment resolveEnchantment(String configuredEnchantment) {
@@ -155,18 +332,16 @@ public class ToolEvolutionManager {
         return null;
     }
 
-    public double getSpecialRepairChance() {
-        return specialRepairChance;
-    }
-
     private List<Material> parseTrackedTools(FileConfiguration config) {
         List<Material> parsed = new ArrayList<>();
         for (String raw : config.getStringList("tracked-tools")) {
-            Material material = Material.matchMaterial(raw);
-            if (material != null) {
-                parsed.add(material);
-            } else {
-                plugin.getLogger().warning("Invalid material in tracked-tools: " + raw);
+            try {
+                Material material = Material.valueOf(raw.toUpperCase(Locale.ROOT));
+                if (!parsed.contains(material)) {
+                    parsed.add(material);
+                }
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("Invalid material in tracked-tools: " + raw + " (use exact Material enum names)");
             }
         }
         return parsed;
@@ -192,12 +367,89 @@ public class ToolEvolutionManager {
             }
 
             String enchantment = milestoneSection.getString("enchantment", "");
-            int level = milestoneSection.getInt("level", 1);
-            boolean unlockSpecial = milestoneSection.getBoolean("unlock-special", false);
-            parsed.add(new EvolutionMilestone(blocks, enchantment, level, unlockSpecial));
+            int level = Math.max(1, milestoneSection.getInt("level", 1));
+            List<String> unlockAbilities = milestoneSection.getStringList("unlock-abilities");
+
+            if (unlockAbilities.isEmpty() && milestoneSection.getBoolean("unlock-special", false)) {
+                unlockAbilities = List.of("self-repair");
+            }
+
+            parsed.add(new EvolutionMilestone(blocks, enchantment, level, normalizeAbilityIds(unlockAbilities)));
         }
 
         parsed.sort(Comparator.comparingInt(EvolutionMilestone::blocksRequired));
         return parsed;
+    }
+
+    private Map<String, SpecialAbilityConfig> parseSpecialAbilities(FileConfiguration config) {
+        ConfigurationSection section = config.getConfigurationSection("special-abilities");
+        Map<String, SpecialAbilityConfig> parsed = new LinkedHashMap<>();
+
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                ConfigurationSection abilitySection = section.getConfigurationSection(key);
+                if (abilitySection == null) {
+                    continue;
+                }
+
+                SpecialAbilityConfig ability = parseSingleAbility(key, abilitySection);
+                if (ability != null) {
+                    parsed.put(key.toLowerCase(Locale.ROOT), ability);
+                }
+            }
+        }
+
+        if (parsed.isEmpty()) {
+            double legacyChance = config.getDouble("special-ability.repair-chance", 0.15D);
+            parsed.put("self-repair", new SpecialAbilityConfig(
+                    "self-repair",
+                    AbilityType.SELF_REPAIR,
+                    true,
+                    clampChance(legacyChance, "special-ability.repair-chance"),
+                    1,
+                    0,
+                    true));
+        }
+
+        return parsed;
+    }
+
+    private SpecialAbilityConfig parseSingleAbility(String id, ConfigurationSection section) {
+        String typeRaw = section.getString("type", id).toUpperCase(Locale.ROOT).replace('-', '_');
+        AbilityType type;
+        try {
+            type = AbilityType.valueOf(typeRaw);
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("Invalid ability type for " + id + ": " + typeRaw);
+            return null;
+        }
+
+        boolean enabled = section.getBoolean("enabled", true);
+        double chance = clampChance(section.getDouble("chance", 0.15D), "special-abilities." + id + ".chance");
+        int amount = Math.max(1, section.getInt("amount", 1));
+        int cooldownSeconds = Math.max(0, section.getInt("cooldown-seconds", 0));
+        boolean compatibleWithMending = section.getBoolean("compatible-with-mending", true);
+
+        return new SpecialAbilityConfig(id.toLowerCase(Locale.ROOT), type, enabled, chance, amount, cooldownSeconds, compatibleWithMending);
+    }
+
+    private List<String> normalizeAbilityIds(List<String> ids) {
+        return ids.stream()
+                .map(id -> id.trim().toLowerCase(Locale.ROOT))
+                .filter(id -> !id.isBlank())
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private double clampChance(double raw, String path) {
+        if (raw < 0.0D) {
+            plugin.getLogger().warning("Configured chance is below 0.0 at " + path + ". Clamping to 0.0");
+            return 0.0D;
+        }
+        if (raw > 1.0D) {
+            plugin.getLogger().warning("Configured chance is above 1.0 at " + path + ". Clamping to 1.0");
+            return 1.0D;
+        }
+        return raw;
     }
 }

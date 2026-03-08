@@ -12,6 +12,8 @@ public class MainConfigManager {
 
     //VARIABLES CONFIG
     private String prefix;
+    private boolean evolutionLoreEnabled;
+    private String evolutionLoreLineFormat;
 
     //VARIABLES MENSAJES
     private String msgNoPermission;
@@ -46,13 +48,15 @@ public class MainConfigManager {
 
         //CONFIG
         prefix = config.getString("general.prefix", "&#FF0000&lM&#FF0A00&la&#FF1500&lx&#FF1F00&lE&#FF2A00&lv&#FF3400&lo&#FF3E00&ll&#FF4900&lu&#FF5300&lt&#FF5D00&li&#FF6800&lo&#FF7200&ln&#FF7D00&lT&#FF8700&lo&#FF9100&lo&#FF9C00&ll&#FFA600&ls &8» ");
-
+        evolutionLoreEnabled = config.getBoolean("general.evolution-lore.enabled", true);
+        evolutionLoreLineFormat = config.getString("general.evolution-lore.line-format", "&7✦ &b{enchant} {level}");
+        
         //MENSAJES
         msgNoPermission = lang.getString("messages.no-permission", "&cYou do not have permission.");
         msgPluginReload = lang.getString("messages.plugin-reload", "&aConfiguration successfully reloaded.");
         msgMilestoneReached = lang.getString("messages.milestone-reached", "&aYour tool reached &e%blocks%&a blocks and gained &e%enchant% %level%&a.");
-        msgSpecialUnlocked = lang.getString("messages.special-unlocked", "&6Your tool unlocked a special ability.");
-        msgToolInfo = lang.getString("messages.tool-info", "&7Tool blocks mined: &e%usage% &8| &7Special: &e%special%");
+        msgSpecialUnlocked = lang.getString("messages.special-unlocked", "&6Your tool unlocked a special ability: &e%ability%&6.");
+        msgToolInfo = lang.getString("messages.tool-info", "&7Tool blocks mined: &e%usage% &8| &7Special: &e%special% &8| &7Abilities: &e%abilities%");
         msgOnlyPlayers = lang.getString("messages.only-players", "&cOnly players can use this command.");
         msgInvalidTool = lang.getString("messages.invalid-tool", "&cHold a valid tool in your hand.");
         msgEnabledWord = lang.getString("messages.enabled-word", "Enabled");
@@ -82,6 +86,8 @@ public class MainConfigManager {
     public String getMsgEnabledWord() { return msgEnabledWord; }
     public String getMsgDisabledWord() { return msgDisabledWord; }
     public String getMsgCommandUsage() { return msgCommandUsage; }
+    public boolean isEvolutionLoreEnabled() { return evolutionLoreEnabled; }
+    public String getEvolutionLoreLineFormat() { return evolutionLoreLineFormat; }
     public FileConfiguration getEvolutionConfig() {
         return evolutionFile.getConfig();
     }

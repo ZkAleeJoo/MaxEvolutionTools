@@ -7,8 +7,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.zkaleejoo.MaxEvolutionTools;
 import org.zkaleejoo.evolution.EvolutionMilestone;
 import org.zkaleejoo.evolution.ToolEvolutionManager;
@@ -42,38 +40,21 @@ public class ToolEvolutionListener implements Listener {
                 continue;
             }
 
-            if (milestone.specialUnlock()) {
-                player.sendMessage(MessageUtils.getColoredMessage(plugin.getConfigManager().getPrefix() + plugin.getConfigManager().getMsgSpecialUnlocked()));
-            } else {
+            if (milestone.enchantment() != null && !milestone.enchantment().isBlank()) {
                 String message = plugin.getConfigManager().getMsgMilestoneReached()
                         .replace("%blocks%", String.valueOf(milestone.blocksRequired()))
                         .replace("%enchant%", milestone.enchantment())
                         .replace("%level%", String.valueOf(milestone.level()));
                 player.sendMessage(MessageUtils.getColoredMessage(plugin.getConfigManager().getPrefix() + message));
             }
+
+            for (String abilityId : evolutionManager.getAbilitiesToNotify(milestone)) {
+                String message = plugin.getConfigManager().getMsgSpecialUnlocked()
+                        .replace("%ability%", abilityId);
+                player.sendMessage(MessageUtils.getColoredMessage(plugin.getConfigManager().getPrefix() + message));
+            }
         }
 
-        if (evolutionManager.isSpecialUnlocked(tool)) {
-            applySpecialRepair(tool);
-        }
-    }
-
-    private void applySpecialRepair(ItemStack tool) {
-        if (Math.random() > evolutionManager.getSpecialRepairChance()) {
-            return;
-        }
-
-        ItemMeta meta = tool.getItemMeta();
-        if (!(meta instanceof Damageable damageable)) {
-            return;
-        }
-
-        int damage = damageable.getDamage();
-        if (damage <= 0) {
-            return;
-        }
-
-        damageable.setDamage(damage - 1);
-        tool.setItemMeta(meta);
+        evolutionManager.processSpecialAbilities(tool);
     }
 }

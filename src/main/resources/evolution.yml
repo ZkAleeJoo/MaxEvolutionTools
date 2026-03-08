@@ -19,7 +19,15 @@ tracked-tools:
   - DIAMOND_SHOVEL
   - NETHERITE_SHOVEL
 
-#They are applied when the counter reaches EXACTLY the value of blocks.
+#Milestones are evaluated when the counter reaches OR exceeds the configured blocks.
+#Supported enchantment names:
+#  AQUA_AFFINITY, BANE_OF_ARTHROPODS, BLAST_PROTECTION, BREACH, CHANNELING,
+#  DENSITY, DEPTH_STRIDER, EFFICIENCY, FEATHER_FALLING, FIRE_ASPECT, FIRE_PROTECTION,
+#  FLAME, FORTUNE, FROST_WALKER, IMPALING, INFINITY, KNOCKBACK, LOOTING, LOYALTY,
+#  LUCK_OF_THE_SEA, LURE, MENDING, MULTISHOT, PIERCING, POWER, PROJECTILE_PROTECTION,
+#  PROTECTION, PUNCH, QUICK_CHARGE, RESPIRATION, RIPTIDE, SHARPNESS, SILK_TOUCH,
+#  SMITE, SOUL_SPEED, SWEEPING_EDGE, THORNS, UNBREAKING, VANISHING_CURSE,
+#  BINDING_CURSE, WIND_BURST (plus valid Bukkit aliases like DURABILITY/UNBREAKING).
 milestones:
   milestone-1:
     blocks: 100
@@ -31,8 +39,19 @@ milestones:
     level: 1
   milestone-3:
     blocks: 1000
-    unlock-special: true
+    unlock-abilities:
+      - self-repair
 
-#Example special ability: the tool has a chance to repair itself by 1 point when breaking blocks.
-special-ability:
-  repair-chance: 0.15
+#Special abilities catalog.
+#Supported ability ids/types (current):
+#  self-repair -> Repairs tool durability by `amount` when it procs.
+#Use `compatible-with-mending: false` if you want the ability to stop working on tools with Mending.
+#`chance` range is 0.0 to 1.0.
+special-abilities:
+  self-repair:
+    type: SELF_REPAIR
+    enabled: true
+    chance: 0.15
+    amount: 1
+    cooldown-seconds: 0
+    compatible-with-mending: true
