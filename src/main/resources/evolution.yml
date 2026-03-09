@@ -1,4 +1,24 @@
-#Tools that will participate in the evolution system.
+# ============================================================================
+# MaxEvolutionTools - Evolution settings
+# ============================================================================
+# 1) tracked-tools:
+#    Tools that can gain levels and special abilities.
+#
+# 2) milestones:
+#    Each milestone is activated when the tool reaches at least X mined blocks.
+#    You can grant enchantments and/or unlock abilities.
+#
+# 3) special-abilities:
+#    Master catalog of abilities. The id (example: self-repair) is used in
+#    milestones -> unlock-abilities.
+#
+# Common options inside each ability:
+# - type: Internal ability type (do not change unless you know what you are doing).
+# - enabled: true/false to enable or disable the ability globally.
+# - chance: Probability per trigger (0.0 = never, 1.0 = always).
+# - amount: Main power value of the ability (meaning depends on each ability).
+# - cooldown-seconds: Cooldown between activations.
+# - compatible-with-mending: If false, ability does not work on tools with Mending.
 tracked-tools:
   - WOODEN_PICKAXE
   - STONE_PICKAXE
@@ -41,17 +61,76 @@ milestones:
     blocks: 1000
     unlock-abilities:
       - self-repair
+      - auto-smelt
+      - telepathy
+      - xp-boost
+      - haste
+      - drill
+      - hammer
 
-#Special abilities catalog.
-#Supported ability ids/types (current):
-#  self-repair -> Repairs tool durability by `amount` when it procs.
-#Use `compatible-with-mending: false` if you want the ability to stop working on tools with Mending.
-#`chance` range is 0.0 to 1.0.
 special-abilities:
+  # Repairs durability when it procs.
   self-repair:
     type: SELF_REPAIR
     enabled: true
     chance: 0.15
+    amount: 1
+    cooldown-seconds: 0
+    compatible-with-mending: true
+
+  # Smelts RAW_IRON / RAW_GOLD / RAW_COPPER drops automatically.
+  auto-smelt:
+    type: AUTO_SMELT
+    enabled: true
+    chance: 1.0
+    amount: 1
+    cooldown-seconds: 0
+    compatible-with-mending: true
+
+  # Sends mined drops directly to the player inventory.
+  telepathy:
+    type: TELEPATHY
+    enabled: true
+    chance: 1.0
+    amount: 1
+    cooldown-seconds: 0
+    compatible-with-mending: true
+
+  # 3x3 mining for high-tier pickaxes (diamond/netherite).
+  # amount=1 means 3x3. amount=2 means 5x5, etc.
+  drill:
+    type: DRILL
+    enabled: false
+    chance: 1.0
+    amount: 1
+    cooldown-seconds: 0
+    compatible-with-mending: true
+
+  # 3x3 mining for high-tier shovels (diamond/netherite).
+  hammer:
+    type: HAMMER
+    enabled: false
+    chance: 1.0
+    amount: 1
+    cooldown-seconds: 0
+    compatible-with-mending: true
+
+  # Multiplies natural xp from the broken block.
+  # amount=2 -> x2 xp, amount=3 -> x3 xp...
+  xp-boost:
+    type: XP_BOOST
+    enabled: true
+    chance: 1.0
+    amount: 2
+    cooldown-seconds: 0
+    compatible-with-mending: true
+
+  # Gives passive Haste while holding the evolved tool.
+  # amount=1 -> Haste I, amount=2 -> Haste II...
+  haste:
+    type: HASTE
+    enabled: true
+    chance: 1.0
     amount: 1
     cooldown-seconds: 0
     compatible-with-mending: true

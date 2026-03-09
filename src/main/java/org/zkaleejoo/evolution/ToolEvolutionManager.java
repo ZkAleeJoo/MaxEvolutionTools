@@ -98,6 +98,20 @@ public class ToolEvolutionManager {
         return !getUnlockedAbilities(itemStack).isEmpty();
     }
 
+    public boolean hasUnlockedAbility(ItemStack itemStack, String abilityId) {
+        if (abilityId == null || abilityId.isBlank()) {
+            return false;
+        }
+        return getUnlockedAbilities(itemStack).contains(abilityId.trim().toLowerCase(Locale.ROOT));
+    }
+
+    public SpecialAbilityConfig getSpecialAbilityConfig(String abilityId) {
+        if (abilityId == null || abilityId.isBlank()) {
+            return null;
+        }
+        return specialAbilities.get(abilityId.trim().toLowerCase(Locale.ROOT));
+    }
+
     public Set<String> getUnlockedAbilities(ItemStack itemStack) {
         if (itemStack == null || itemStack.getItemMeta() == null) {
             return Collections.emptySet();
@@ -202,19 +216,11 @@ public class ToolEvolutionManager {
         boolean changed = false;
         for (String abilityId : unlocked) {
             SpecialAbilityConfig ability = specialAbilities.get(abilityId);
-            if (ability == null || !ability.enabled()) {
+            if (ability == null || ability.type() != AbilityType.SELF_REPAIR) {
                 continue;
             }
 
-            if (!ability.compatibleWithMending() && meta.hasEnchant(Enchantment.MENDING)) {
-                continue;
-            }
-
-            if (!isOffCooldown(meta, abilityId)) {
-                continue;
-            }
-
-            if (Math.random() > ability.chance()) {
+            if (!canProcAbility(meta, ability)) {
                 continue;
             }
 
@@ -229,9 +235,33 @@ public class ToolEvolutionManager {
         }
     }
 
+    public boolean canProcAbility(ItemMeta meta, SpecialAbilityConfig ability) {
+        if (meta == null || ability == null || !ability.enabled()) {
+            return false;
+        }
+
+        if (!ability.compatibleWithMending() && meta.hasEnchant(Enchantment.MENDING)) {
+            return false;
+        }
+
+        if (!isOffCooldown(meta, ability.id())) {
+            return false;
+        }
+
+        return Math.random() <= ability.chance();
+    }
+
+    public void applyCooldown(ItemMeta meta, SpecialAbilityConfig ability) {
+        if (meta == null || ability == null) {
+            return;
+        }
+        markCooldown(meta, ability.id(), ability.cooldownSeconds());
+    }
+
     private boolean applyAbility(ItemMeta meta, SpecialAbilityConfig ability) {
         return switch (ability.type()) {
             case SELF_REPAIR -> applySelfRepair(meta, ability.amount());
+            case AUTO_SMELT, TELEPATHY, DRILL, HAMMER, XP_BOOST, HASTE -> false;
         };
     }
 
