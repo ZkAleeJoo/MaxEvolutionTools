@@ -124,6 +124,10 @@ special-abilities:
     amount: 2
     cooldown-seconds: 0
     compatible-with-mending: true
+    # Optional: if configured, xp-boost will only apply when breaking these materials.
+    # Use exact Material enum names (e.g. COAL_ORE, DEEPSLATE_DIAMOND_ORE).
+    # Leave empty or remove the key to apply xp-boost to any block with natural XP.
+    material-whitelist: []
 
   # Gives passive Haste while holding the evolved tool.
   # amount=1 -> Haste I, amount=2 -> Haste II...

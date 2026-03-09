@@ -130,6 +130,10 @@ public class ToolEvolutionListener implements Listener {
             return;
         }
 
+        if (xpBoost.hasMaterialWhitelist() && !xpBoost.materialWhitelist().contains(event.getBlock().getType())) {
+            return;
+        }
+
         int baseXp = event.getExpToDrop();
         if (baseXp <= 0) {
             return;

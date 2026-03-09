@@ -448,7 +448,8 @@ public class ToolEvolutionManager {
                     clampChance(legacyChance, "special-ability.repair-chance"),
                     1,
                     0,
-                    true));
+                    true,
+                    Collections.emptySet()));
         }
 
         return parsed;
@@ -470,7 +471,32 @@ public class ToolEvolutionManager {
         int cooldownSeconds = Math.max(0, section.getInt("cooldown-seconds", 0));
         boolean compatibleWithMending = section.getBoolean("compatible-with-mending", true);
 
-        return new SpecialAbilityConfig(id.toLowerCase(Locale.ROOT), type, enabled, chance, amount, cooldownSeconds, compatibleWithMending);
+        Set<Material> materialWhitelist = parseMaterialWhitelist(section, id);
+
+        return new SpecialAbilityConfig(id.toLowerCase(Locale.ROOT), type, enabled, chance, amount, cooldownSeconds, compatibleWithMending, materialWhitelist);
+    }
+
+    private Set<Material> parseMaterialWhitelist(ConfigurationSection section, String abilityId) {
+        List<String> configured = section.getStringList("material-whitelist");
+        if (configured.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        Set<Material> parsed = new LinkedHashSet<>();
+        for (String raw : configured) {
+            if (raw == null || raw.isBlank()) {
+                continue;
+            }
+
+            String normalized = raw.trim().toUpperCase(Locale.ROOT);
+            try {
+                parsed.add(Material.valueOf(normalized));
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("Invalid material in special-abilities." + abilityId + ".material-whitelist: " + raw + " (use exact Material enum names)");
+            }
+        }
+
+        return parsed.isEmpty() ? Collections.emptySet() : parsed;
     }
 
     private List<String> normalizeAbilityIds(List<String> ids) {
