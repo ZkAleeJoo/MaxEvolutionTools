@@ -78,7 +78,7 @@ special-abilities:
     cooldown-seconds: 0
     compatible-with-mending: true
 
-  # Smelts RAW_IRON / RAW_GOLD / RAW_COPPER drops automatically.
+  # Smelts RAW_IRON / RAW_GOLD / RAW_COPPER / ANCIENT_DEBRIS / IRON_ORE / GOLD_ORE / COPPER_ORE drops automatically.
   auto-smelt:
     type: AUTO_SMELT
     enabled: true

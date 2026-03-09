@@ -205,6 +205,10 @@ public class ToolEvolutionListener implements Listener {
                 case RAW_IRON -> Material.IRON_INGOT;
                 case RAW_GOLD -> Material.GOLD_INGOT;
                 case RAW_COPPER -> Material.COPPER_INGOT;
+                case ANCIENT_DEBRIS -> Material.NETHERITE_SCRAP;
+                case IRON_ORE -> Material.IRON_INGOT;
+                case GOLD_ORE -> Material.GOLD_INGOT;
+                case COPPER_ORE -> Material.COPPER_INGOT;
                 default -> null;
             };
             if (smelted == null) {
